@@ -1,0 +1,169 @@
+#define echoPin P1_0
+#define trigPin P1_1
+
+#include <SoftwareSerial.h>
+SoftwareSerial GSM(P2_6, P2_7);
+long duration;
+int distance;
+float latitude;
+float logitude;
+int a,b,i;
+
+void setup() 
+{
+  GSM.begin(9600);
+  Serial.begin(9600);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(P1_2, OUTPUT);
+  pinMode(P1_3, OUTPUT);
+  pinMode(P2_0, OUTPUT);
+  pinMode(P2_1, OUTPUT);
+  pinMode(P2_2, OUTPUT);
+  pinMode(P2_3, OUTPUT);
+  
+} 
+
+void loop() 
+{
+        digitalWrite(trigPin, LOW);
+        delayMicroseconds(2);
+        digitalWrite(trigPin, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(trigPin, LOW);
+        
+        duration=pulseIn(echoPin, HIGH);
+        distance=(duration*0.034/2);
+
+        if(distance<500)
+        {
+          digitalWrite(P1_2, HIGH);
+          digitalWrite(P1_3, LOW);
+          Send();
+          gpsEvent();
+         
+        }
+        
+        else 
+         {
+          digitalWrite(P1_2, LOW);
+          digitalWrite(P1_3, HIGH);
+          delay(50);
+         }
+         
+
+
+ digitalWrite(P2_0, HIGH);
+ digitalWrite(P2_1, LOW);
+ digitalWrite(P2_2, HIGH);
+ digitalWrite(P2_3, LOW);
+ delay(2000);
+
+ /*digitalWrite(P2_0, LOW);
+ digitalWrite(P2_1, HIGH);
+ digitalWrite(P2_2, LOW);
+ digitalWrite(P2_3, HIGH);
+ delay(2000);*/
+
+ digitalWrite(P2_0, LOW);
+ digitalWrite(P2_1, LOW);
+ digitalWrite(P2_2, LOW);
+ digitalWrite(P2_3, LOW);
+ 
+} 
+
+void gpsEvent()
+{
+  char gpsString[55];
+  char test[]="RMC";
+  i=0;
+  while(1)
+  {
+   while (Serial.available())            //Serial incomming data from GPS
+   {
+    char inChar = (char)Serial.read();
+     gpsString[i]=inChar;                    //store incomming data from GPS to temparary string str[]
+     i++;
+     if (i < 4)                      
+     {
+      if(gpsString[i-1] != test[i-1])         //check for right string
+        i=0;
+     }
+     if(i>50)
+     {       
+       int degree=0;        
+       degree=gpsString[16]-48;
+       degree*=10;
+       degree+=gpsString[17]-48;
+       int minut_int=0;         
+       minut_int=gpsString[18]-48;
+       minut_int*=10;
+       minut_int+=gpsString[19]-48;
+   
+       int minut_dec=0;
+       minut_dec+= (gpsString[21]-48)*10000;
+       minut_dec+= (gpsString[22]-48)*1000;
+       minut_dec+= (gpsString[23]-48)*100;
+       minut_dec+= (gpsString[24]-48)*10;
+       minut_dec+= (gpsString[25]-48);
+       
+       float minut= ((float)minut_int + ((float)minut_dec/100000.0))/60.0;
+       latitude= ((float)degree + minut);
+       
+       degree=0;        
+       degree=gpsString[30]-48;
+       degree*=10;
+       degree+=gpsString[31]-48;
+       
+       minut_int=0;         
+       minut_int=gpsString[32]-48;
+       minut_int*=10;
+       minut_int+=gpsString[33]-48;
+       
+       minut_dec=0;
+       minut_dec+= (gpsString[35]-48)*10000;
+       minut_dec+= (gpsString[36]-48)*1000;
+       minut_dec+= (gpsString[37]-48)*100;
+       minut_dec+= (gpsString[38]-48)*10;
+       minut_dec+= (gpsString[39]-48);
+    
+       minut= ((float)minut_int + ((float)minut_dec/100000.0))/60.0;
+       logitude= ((float)degree + minut);    
+       i=0;
+       Serial.flush();
+       return;
+     }
+  }
+  }
+}
+
+void Send()
+{
+  GSM.println("AT");
+  delay(1000);
+  GSM.println("ATE0");
+  delay(1000);
+  GSM.println("AT+CMGF=1");
+  GSM.println("AT+CMGS=");
+  GSM.print('"');
+  GSM.print("8355846580");
+  GSM.println('"');
+  delay(500);
+
+  GSM.println("Crack detect");
+  
+  delay(500);
+  GSM.print("longitude");
+  GSM.print(" longitude");
+  GSM.print(" Click on link to see location  ");
+  GSM.print(" http://maps.google.com/maps?&z=15&mrt=yp&t=k&q=");
+  GSM.print(latitude,6);
+  GSM.print("+");
+  GSM.print(logitude,6);
+  GSM.write(26);
+  delay(4000);
+}
+         
+        
+  
